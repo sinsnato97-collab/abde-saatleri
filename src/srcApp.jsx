@@ -1,0 +1,157 @@
+import React, { useEffect, useState } from "react";
+import { Clock3, MapPin, Users } from "lucide-react";
+
+const STATE_TIMEZONES = [
+  {
+    zoneLabel: "Eastern Time",
+    state: "New York",
+    population: "19.87M",
+    timeZone: "America/New_York",
+    offset: "UTC−4 / UTC−5",
+  },
+  {
+    zoneLabel: "Central Time",
+    state: "Illinois",
+    population: "12.55M",
+    timeZone: "America/Chicago",
+    offset: "UTC−5 / UTC−6",
+  },
+  {
+    zoneLabel: "Mountain Time",
+    state: "Arizona",
+    population: "7.58M",
+    timeZone: "America/Phoenix",
+    offset: "UTC−7",
+  },
+  {
+    zoneLabel: "Pacific Time",
+    state: "California",
+    population: "39.43M",
+    timeZone: "America/Los_Angeles",
+    offset: "UTC−7 / UTC−8",
+  },
+  {
+    zoneLabel: "Alaska Time",
+    state: "Alaska",
+    population: "733K",
+    timeZone: "America/Anchorage",
+    offset: "UTC−8 / UTC−9",
+  },
+  {
+    zoneLabel: "Hawaii-Aleutian Time",
+    state: "Hawaii",
+    population: "1.45M",
+    timeZone: "Pacific/Honolulu",
+    offset: "UTC−10",
+  },
+];
+
+function safeFormatTime(date, timeZone) {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(date);
+  }
+}
+
+function safeFormatDate(date, timeZone) {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  }
+}
+
+export default function App() {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-zinc-950 px-4 py-6 text-white sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-5 sm:mb-8 sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-2xl bg-white/10 p-3">
+              <Clock3 className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
+                U.S. State Time Zones
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm text-zinc-300 sm:text-base">
+                Live clocks for one U.S. state in each major state based time zone.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {STATE_TIMEZONES.map((item) => (
+            <div
+              key={item.zoneLabel}
+              className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white"
+            >
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-zinc-400">{item.zoneLabel}</p>
+                  <h2 className="mt-1 text-xl font-semibold sm:text-2xl">
+                    {safeFormatTime(now, item.timeZone)}
+                  </h2>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-zinc-300">
+                  {item.offset}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 text-base font-medium sm:text-lg">
+                    <MapPin className="h-4 w-4" />
+                    <span>{item.state}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    {safeFormatDate(now, item.timeZone)}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-zinc-300">
+                  <Users className="h-4 w-4" />
+                  <span>Population: {item.population}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
