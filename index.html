@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔥 Shorts Leaderboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0a0f;--surface:#111118;--card:#16161f;--border:#1e1e2e;
+    --accent:#ff2d55;--accent2:#ff9f0a;--gold:#ffd700;--silver:#c0c0c0;
+    --bronze:#cd7f32;--text:#f0f0f5;--muted:#666680;--green:#30d158;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,45,85,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,45,85,.03) 1px,transparent 1px);background-size:40px 40px;z-index:0;pointer-events:none}
+  .container{max-width:860px;margin:0 auto;padding:40px 20px 80px;position:relative;z-index:1}
+  header{text-align:center;margin-bottom:48px}
+  .logo-bar{display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(42px,8vw,72px);letter-spacing:3px;background:linear-gradient(135deg,#ff2d55,#ff9f0a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+  .subtitle{color:var(--muted);font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-top:8px}
+
+  /* Setup card */
+  .setup-card{background:var(--card);border:1px solid rgba(255,159,10,.3);border-radius:16px;padding:28px;margin-bottom:28px;display:none}
+  .setup-card.show{display:block}
+  .setup-card h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--accent2);margin-bottom:10px}
+  .setup-card p{color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:14px}
+  .setup-card a{color:var(--accent)}
+  .setup-card ol{color:var(--muted);font-size:13px;padding-left:20px;line-height:2}
+  .setup-card ol li span{color:var(--text)}
+  .api-row{display:flex;gap:10px;margin-top:16px}
+  .api-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+  .api-input:focus{border-color:var(--accent)}
+  .save-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:white;padding:11px 20px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+  .save-btn:hover{opacity:.9}
+
+  .status-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;margin-bottom:20px;font-size:13px}
+  .status-left{display:flex;align-items:center;gap:8px;color:var(--muted)}
+  .pulse{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(48,209,88,.4)}50%{opacity:.8;box-shadow:0 0 0 6px rgba(48,209,88,0)}}
+  .refresh-btn{background:var(--accent);border:none;color:white;padding:8px 18px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+  .refresh-btn:hover{background:#e0284d;transform:translateY(-1px)}
+  .refresh-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .refresh-btn .spinner{width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;display:none}
+  .refresh-btn.loading .spinner{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 24px;margin-bottom:20px;display:none}
+  .progress-wrap.visible{display:block}
+  .progress-label{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .progress-bar-bg{background:var(--border);border-radius:99px;height:5px;overflow:hidden}
+  .progress-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .3s ease}
+
+  .error-msg{background:rgba(255,45,85,.1);border:1px solid rgba(255,45,85,.3);border-radius:10px;padding:14px 18px;font-size:13px;color:#ff6b8a;margin-bottom:20px;display:none}
+  .error-msg.visible{display:block}
+
+  .leaderboard{display:flex;flex-direction:column;gap:10px}
+  .rank-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:16px;transition:all .3s;animation:slideIn .4s ease both;text-decoration:none;color:inherit;position:relative;overflow:hidden}
+  .rank-card::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,45,85,.05),transparent);opacity:0;transition:opacity .3s}
+  .rank-card:hover::before{opacity:1}
+  .rank-card:hover{border-color:rgba(255,45,85,.3);transform:translateX(4px)}
+  .rank-card.top1{border-color:rgba(255,215,0,.3);background:linear-gradient(135deg,#16161f,#1a1810)}
+  .rank-card.top2{border-color:rgba(192,192,192,.2)}
+  .rank-card.top3{border-color:rgba(205,127,50,.2)}
+  @keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .rank-num{font-family:'Bebas Neue',sans-serif;font-size:28px;min-width:40px;text-align:center;line-height:1}
+  .rank-card.top1 .rank-num{color:var(--gold);text-shadow:0 0 20px rgba(255,215,0,.4)}
+  .rank-card.top2 .rank-num{color:var(--silver)}
+  .rank-card.top3 .rank-num{color:var(--bronze)}
+  .rank-card:not(.top1):not(.top2):not(.top3) .rank-num{color:var(--muted)}
+  .thumb{width:80px;height:45px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--border)}
+  .thumb-placeholder{width:80px;height:45px;border-radius:8px;background:var(--surface);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:20px}
+  .info{flex:1;min-width:0}
+  .video-title{font-weight:700;font-size:14px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+  .channel-name{font-size:12px;color:var(--muted)}
+  .stats{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+  .view-count{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;line-height:1}
+  .rank-card.top1 .view-count{color:var(--gold)}
+  .view-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .hours-ago{font-size:11px;color:var(--muted);padding:3px 8px;background:var(--surface);border-radius:20px}
+
+  .skeleton{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:16px;margin-bottom:10px;animation:shimmer 1.5s infinite}
+  @keyframes shimmer{0%,100%{opacity:.6}50%{opacity:1}}
+  .skel-num{width:40px;height:28px;background:var(--border);border-radius:4px}
+  .skel-thumb{width:80px;height:45px;background:var(--border);border-radius:8px;flex-shrink:0}
+  .skel-info{flex:1}.skel-line{height:12px;background:var(--border);border-radius:4px;margin-bottom:8px}
+  .skel-line.short{width:40%}.skel-stats{width:60px}
+  .skel-big{height:24px;background:var(--border);border-radius:4px;margin-bottom:6px}
+  .skel-small{height:10px;width:30px;background:var(--border);border-radius:4px}
+
+  .empty{text-align:center;padding:80px 20px;color:var(--muted);display:none}
+  .empty.visible{display:block}
+  .empty-icon{font-size:48px;margin-bottom:16px}
+  .empty h3{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:8px;color:var(--text)}
+
+  .channel-count{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--muted);margin-bottom:16px}
+  footer{text-align:center;margin-top:48px;color:var(--muted);font-size:12px;line-height:1.8}
+  .change-key{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:8px}
+  .change-key:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-bar">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" style="margin-bottom:8px"><rect width="36" height="36" rx="10" fill="#ff2d55"/><path d="M14 11L26 18L14 25V11Z" fill="white"/></svg>
+    </div>
+    <h1>SHORTS LEADERBOARD</h1>
+    <p class="subtitle">Son 24 saat • En çok izlenen 10 short</p>
+  </header>
+
+  <!-- API Key Setup -->
+  <div class="setup-card" id="setupCard">
+    <h3>🔑 YouTube API Anahtarı Gerekli</h3>
+    <p>Bu site ücretsiz YouTube Data API v3 kullanır. Anahtarı bir kez girmen yeterli — tarayıcında şifreli olarak saklanır.</p>
+    <ol>
+      <li>Git: <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a></li>
+      <li>Yeni proje oluştur → <span>YouTube Data API v3</span> etkinleştir</li>
+      <li><span>Credentials → Create API Key</span> → kopyala</li>
+    </ol>
+    <div class="api-row">
+      <input class="api-input" id="apiInput" type="text" placeholder="AIzaSy... API anahtarını yapıştır">
+      <button class="save-btn" onclick="saveKey()">Kaydet & Başlat</button>
+    </div>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="status-bar">
+    <div class="status-left"><div class="pulse"></div><span id="statusText">Hazır</span></div>
+    <div id="lastUpdate" style="color:var(--muted);font-size:12px"></div>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadLeaderboard()">
+      <div class="spinner"></div><span>Yenile</span>
+    </button>
+  </div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label" id="progressLabel">Kanallar taranıyor...</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="channel-count"><span>📡</span><span>73 kanal takip ediliyor</span></div>
+
+  <div id="skeletonList"></div>
+  <div class="leaderboard" id="leaderboard"></div>
+  <div class="empty" id="emptyState">
+    <div class="empty-icon">📭</div>
+    <h3>Short Bulunamadı</h3>
+    <p>Son 24 saatte bu kanallardan short yayınlanmamış.</p>
+  </div>
+
+  <footer>
+    <p>YouTube Data API v3 • Her 30 dakikada otomatik güncellenir</p>
+    <p style="margin-top:6px"><button class="change-key" onclick="changeKey()">🔑 API Anahtarını Değiştir</button></p>
+  </footer>
+</div>
+
+<script>
+const CHANNELS = [
+  "EgitimciAdam","SnipZMemes","EzaXD09","zhiphyr","MemeDoggyZ","Moktalojik","ONLYMEMES-4YOU",
+  "MiiRain","monium","CurtZmemes","PixelinuBlixMeme","Pezoid.x","Refahyolcusu","victor_rozz",
+  "FirstlaughterDose","Devil_React","twosidememes","CrypticWorlds","gelnox","BloopTubeShorts",
+  "OxygenosDuo","wafuuMrUnknownXD","GenZMems","DAL3X","NonGeek","Grin","PixelCompaly2",
+  "iCloud.y","Zinng","Jolizo","menimemee","Mesosphere-92","Flaxtu","Ogigsy","Pfft_real",
+  "GAMETIMENahomom","ZorbZorb","Memurk","XoreXEdit","itsmemetronix","BoruMemes","VazhYT",
+  "Zohomemes","Mematus","TrigX_I","Zwaphr","Puzz.Y","JosephMemess","aspectmeme","WisdomVerse2",
+  "KXHi","SkeldZ","japinoygamingghlights1","yt.meminho","VadeZmemes","Cyall","Zdak",
+  "NikaDimension","RealBlastHaven","MrManZell","memessoo","vkomedipost","Zplunko","EzyCricu",
+  "Goofarr","Karsilastirio","drixx3","Klypt.x","Techlin","JemsyMemes","ZyroMems","yaşayan.ölüyüm8"
+];
+
+const KEY_STORAGE = 'yt_api_key_v1';
+const CHID_STORAGE = 'yt_channel_ids_v4';
+let apiKey = localStorage.getItem(KEY_STORAGE) || '';
+let channelIds = {};
+try { channelIds = JSON.parse(localStorage.getItem(CHID_STORAGE)||'{}'); } catch{}
+let autoTimer = null;
+
+const BASE = 'https://www.googleapis.com/youtube/v3';
+
+function fmt(n){n=parseInt(n)||0;if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n+''}
+function ago(d){if(!d)return'';const h=(Date.now()-new Date(d))/3600000;return h<1?Math.round(h*60)+'dk önce':Math.round(h)+'sa önce'}
+function setStatus(t){document.getElementById('statusText').textContent=t}
+function showError(m){const e=document.getElementById('errorMsg');e.textContent=m;e.classList.add('visible')}
+function hideError(){document.getElementById('errorMsg').classList.remove('visible')}
+function setProgress(done,total,lbl){
+  const w=document.getElementById('progressWrap');w.classList.add('visible');
+  document.getElementById('progressLabel').textContent=lbl;
+  document.getElementById('progressFill').style.width=Math.round(done/total*100)+'%';
+  if(done>=total)setTimeout(()=>w.classList.remove('visible'),900);
+}
+function showSkels(){document.getElementById('skeletonList').innerHTML=Array(5).fill(0).map(()=>`<div class="skeleton"><div class="skel-num"></div><div class="skel-thumb"></div><div class="skel-info"><div class="skel-line"></div><div class="skel-line short"></div></div><div class="skel-stats"><div class="skel-big"></div><div class="skel-small"></div></div></div>`).join('')}
+function hideSkels(){document.getElementById('skeletonList').innerHTML=''}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function saveKey(){
+  const v=document.getElementById('apiInput').value.trim();
+  if(!v)return;
+  apiKey=v;
+  localStorage.setItem(KEY_STORAGE,v);
+  document.getElementById('setupCard').classList.remove('show');
+  loadLeaderboard();
+}
+function changeKey(){
+  document.getElementById('apiInput').value=apiKey;
+  document.getElementById('setupCard').classList.add('show');
+}
+
+async function ytFetch(endpoint, params){
+  const url = BASE+endpoint+'?'+new URLSearchParams({...params, key: apiKey});
+  const r = await fetch(url);
+  const d = await r.json();
+  if(d.error) throw new Error(d.error.message + ' ('+d.error.code+')');
+  return d;
+}
+
+// Step 1: handle → channel id + uploads playlist id
+async function resolveChannel(handle){
+  if(channelIds[handle]) return channelIds[handle];
+
+  // Try forHandle first
+  let ch = null;
+  try {
+    const d = await ytFetch('/channels', {part:'id,contentDetails', forHandle: handle});
+    ch = d.items?.[0];
+  } catch(e){}
+
+  // Fallback: search by channel name
+  if(!ch){
+    try {
+      const s = await ytFetch('/search', {part:'snippet', type:'channel', q: handle, maxResults:1});
+      const cid = s.items?.[0]?.id?.channelId;
+      if(cid){
+        const d2 = await ytFetch('/channels', {part:'id,contentDetails', id: cid});
+        ch = d2.items?.[0];
+      }
+    } catch(e){}
+  }
+
+  if(!ch) return null;
+  const info = { id: ch.id, uploads: ch.contentDetails.relatedPlaylists.uploads };
+  channelIds[handle] = info;
+  localStorage.setItem(CHID_STORAGE, JSON.stringify(channelIds));
+  return info;
+}
+
+// Step 2: get recent videos from uploads playlist
+async function getRecentVideos(uploadsId){
+  const d = await ytFetch('/playlistItems', {
+    part:'snippet', playlistId: uploadsId, maxResults: 15
+  });
+  const cutoff = Date.now() - 26*3600*1000; // 26 saat (biraz tolerans)
+  return (d.items||[])
+    .filter(i => new Date(i.snippet.publishedAt) >= cutoff)
+    .map(i => i.snippet.resourceId.videoId)
+    .filter(Boolean);
+}
+
+// Step 3: get duration + stats for video IDs
+async function getVideoDetails(ids){
+  if(!ids.length) return [];
+  const d = await ytFetch('/videos', {
+    part:'snippet,statistics,contentDetails', id: ids.join(',')
+  });
+  return (d.items||[]);
+}
+
+function parseDur(iso){
+  const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if(!m)return 999;
+  return (parseInt(m[1]||0)*3600)+(parseInt(m[2]||0)*60)+parseInt(m[3]||0);
+}
+
+async function loadLeaderboard(){
+  if(!apiKey){ document.getElementById('setupCard').classList.add('show'); return; }
+  hideError();
+  const btn=document.getElementById('refreshBtn');
+  btn.disabled=true; btn.classList.add('loading');
+  document.getElementById('leaderboard').innerHTML='';
+  document.getElementById('emptyState').classList.remove('visible');
+  showSkels();
+  setStatus('Taranıyor...');
+
+  const allShorts=[];
+  const BATCH=4;
+
+  try{
+    for(let i=0;i<CHANNELS.length;i+=BATCH){
+      const batch=CHANNELS.slice(i,i+BATCH);
+      setProgress(i,CHANNELS.length,`${i+1}–${Math.min(i+BATCH,CHANNELS.length)} / ${CHANNELS.length}`);
+      setStatus(`${allShorts.length} short bulundu | ${i+1}/${CHANNELS.length}`);
+
+      await Promise.all(batch.map(async handle=>{
+        try{
+          const ch = await resolveChannel(handle);
+          if(!ch) return;
+          const vidIds = await getRecentVideos(ch.uploads);
+          if(!vidIds.length) return;
+          const details = await getVideoDetails(vidIds);
+          for(const v of details){
+            const dur = parseDur(v.contentDetails?.duration||'PT999S');
+            if(dur > 180) continue; // shorts ≤3 dakika (YouTube yeni limit)
+            allShorts.push({
+              videoId: v.id,
+              title: v.snippet.title,
+              channel: '@'+handle,
+              views: parseInt(v.statistics.viewCount||0),
+              publishedAt: v.snippet.publishedAt,
+              thumbnail: v.snippet.thumbnails?.medium?.url||v.snippet.thumbnails?.default?.url||''
+            });
+          }
+        } catch(e){
+          // per-channel errors are silent — quota errors will bubble up via first channel
+          if(e.message.includes('quota') || e.message.includes('403')){
+            throw e; // re-throw quota errors so user sees them
+          }
+        }
+      }));
+
+      if(i+BATCH<CHANNELS.length) await new Promise(r=>setTimeout(r,200));
+    }
+
+    setProgress(CHANNELS.length,CHANNELS.length,'Tamamlandı');
+    allShorts.sort((a,b)=>b.views-a.views);
+    const top10=allShorts.slice(0,10);
+
+    hideSkels();
+    setStatus(`Güncellendi ✓ — ${allShorts.length} short`);
+    document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('tr-TR');
+
+    if(!top10.length){
+      document.getElementById('emptyState').classList.add('visible');
+    } else {
+      renderLeaderboard(top10);
+    }
+
+    clearInterval(autoTimer);
+    autoTimer=setInterval(loadLeaderboard,30*60*1000);
+
+  } catch(e){
+    hideSkels();
+    showError('Hata: '+e.message);
+    setStatus('Hata oluştu');
+    if(e.message.includes('API key') || e.message.includes('400')){
+      document.getElementById('setupCard').classList.add('show');
+    }
+  }
+
+  btn.disabled=false; btn.classList.remove('loading');
+}
+
+function renderLeaderboard(items){
+  const rc=['top1','top2','top3'];
+  document.getElementById('leaderboard').innerHTML=items.map((v,i)=>`
+    <a class="rank-card ${rc[i]||''}" href="https://youtube.com/shorts/${v.videoId}" target="_blank" style="animation-delay:${i*60}ms">
+      <div class="rank-num">${i+1}</div>
+      ${v.thumbnail
+        ?`<img class="thumb" src="${esc(v.thumbnail)}" loading="lazy" onerror="this.outerHTML='<div class=thumb-placeholder>▶</div>'">`
+        :`<div class="thumb-placeholder">▶</div>`}
+      <div class="info">
+        <div class="video-title">${esc(v.title)}</div>
+        <div class="channel-name">${esc(v.channel)}</div>
+      </div>
+      <div class="stats">
+        <div class="view-count">${fmt(v.views)}</div>
+        <div class="view-label">izlenme</div>
+        ${v.publishedAt?`<div class="hours-ago">${ago(v.publishedAt)}</div>`:''}
+      </div>
+    </a>`).join('');
+}
+
+window.onload=()=>{
+  if(!apiKey) document.getElementById('setupCard').classList.add('show');
+  else loadLeaderboard();
+};
+</script>
+</body>
+</html>
