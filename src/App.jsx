@@ -87,8 +87,7 @@ const CHANNEL_HANDLES = [
 ];
 
 const API_KEYS = [
-  "AIzaSyDIa2QFg3tcpDygt5MHrVwNGguYzzUCkkw",
-  "AIzaSyB9G3IkR-l7ZHuDBCgrmW4bwPHafttFUCA",
+  "AIzaSyBUS8L28ndt4kXP8w6BCuaalxo_A9WVedE",
 ];
 
 function getTime(tz) {
