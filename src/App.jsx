@@ -102,7 +102,7 @@ function getTime(tz) {
 
 function formatViews(value) {
   const num = Number(value || 0);
-  return new Intl.NumberFormat("en-US").format(num);
+  return new Intl.NumberFormat("tr-TR").format(num);
 }
 
 function timeAgoTR(dateString) {
@@ -119,9 +119,11 @@ function timeAgoTR(dateString) {
 function parseDurationToSeconds(iso) {
   const match = iso?.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return 0;
+
   const h = Number(match[1] || 0);
   const m = Number(match[2] || 0);
   const s = Number(match[3] || 0);
+
   return h * 3600 + m * 60 + s;
 }
 
@@ -134,12 +136,15 @@ async function fetchJsonWithFallback(buildUrl) {
       const data = await res.json();
 
       if (!res.ok || data?.error) {
-        lastError = new Error(data?.error?.message || "API hatası");
+        const message = data?.error?.message || "API hatası";
+        console.error("API hata cevabı:", message, data);
+        lastError = new Error(message);
         continue;
       }
 
       return data;
     } catch (err) {
+      console.error("API fetch hatası:", err);
       lastError = err;
     }
   }
@@ -158,7 +163,10 @@ async function getChannelInfo(handle) {
   );
 
   const item = data?.items?.[0];
-  if (!item) return null;
+  if (!item) {
+    console.error("Kanal bulunamadı:", handle, data);
+    return null;
+  }
 
   return {
     title: item?.snippet?.title || handle,
@@ -170,7 +178,7 @@ async function getChannelInfo(handle) {
 async function getPlaylistItems(playlistId) {
   const data = await fetchJsonWithFallback(
     (key) =>
-      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${playlistId}&maxResults=8&key=${key}`
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${playlistId}&maxResults=50&key=${key}`
   );
 
   return data?.items || [];
@@ -179,14 +187,22 @@ async function getPlaylistItems(playlistId) {
 async function getVideoDetails(videoIds) {
   if (!videoIds.length) return [];
 
-  const data = await fetchJsonWithFallback(
-    (key) =>
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoIds.join(
-        ","
-      )}&key=${key}`
-  );
+  const allItems = [];
 
-  return data?.items || [];
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const chunk = videoIds.slice(i, i + 50);
+
+    const data = await fetchJsonWithFallback(
+      (key) =>
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${chunk.join(
+          ","
+        )}&key=${key}`
+    );
+
+    allItems.push(...(data?.items || []));
+  }
+
+  return allItems;
 }
 
 async function fetchTopShortsLast24h() {
@@ -196,7 +212,8 @@ async function fetchTopShortsLast24h() {
     CHANNEL_HANDLES.map(async (handle) => {
       try {
         return await getChannelInfo(handle);
-      } catch {
+      } catch (err) {
+        console.error("Kanal alınamadı:", handle, err);
         return null;
       }
     })
@@ -211,7 +228,8 @@ async function fetchTopShortsLast24h() {
       try {
         const items = await getPlaylistItems(channel.uploadsPlaylistId);
         return { channel, items };
-      } catch {
+      } catch (err) {
+        console.error("Playlist alınamadı:", channel.handle, err);
         return { channel, items: [] };
       }
     })
@@ -227,7 +245,10 @@ async function fetchTopShortsLast24h() {
         item?.contentDetails?.videoPublishedAt || item?.snippet?.publishedAt;
 
       if (!videoId || !publishedAt) continue;
-      if (new Date(publishedAt).getTime() < last24h) continue;
+
+      if (new Date(publishedAt).getTime() < last24h) {
+        continue;
+      }
 
       candidates.set(videoId, {
         videoId,
@@ -239,38 +260,47 @@ async function fetchTopShortsLast24h() {
   }
 
   const allIds = [...candidates.keys()];
+  const details = await getVideoDetails(allIds);
   const results = [];
 
-  for (let i = 0; i < allIds.length; i += 50) {
-    const chunk = allIds.slice(i, i + 50);
-    const details = await getVideoDetails(chunk);
+  for (const video of details) {
+    const seconds = parseDurationToSeconds(video?.contentDetails?.duration);
+    const publishedAt = video?.snippet?.publishedAt;
 
-    for (const video of details) {
-      const seconds = parseDurationToSeconds(video?.contentDetails?.duration);
-      const publishedAt = video?.snippet?.publishedAt;
+    if (!publishedAt) continue;
+    if (new Date(publishedAt).getTime() < last24h) continue;
 
-      if (!publishedAt) continue;
-      if (new Date(publishedAt).getTime() < last24h) continue;
-
-      if (seconds > 0 && seconds <= 70) {
-        results.push({
-          id: video.id,
-          title: video?.snippet?.title || "Başlıksız video",
-          channelTitle:
-            candidates.get(video.id)?.channelTitle ||
-            video?.snippet?.channelTitle ||
-            "Bilinmeyen kanal",
-          channelHandle: candidates.get(video.id)?.channelHandle || "",
-          publishedAt,
-          views: Number(video?.statistics?.viewCount || 0),
-          seconds,
-          url: `https://www.youtube.com/watch?v=${video.id}`,
-        });
-      }
+    if (seconds > 0 && seconds <= 60) {
+      results.push({
+        id: video.id,
+        title: video?.snippet?.title || "Başlıksız video",
+        channelTitle:
+          candidates.get(video.id)?.channelTitle ||
+          video?.snippet?.channelTitle ||
+          "Bilinmeyen kanal",
+        channelHandle: candidates.get(video.id)?.channelHandle || "",
+        publishedAt,
+        views: Number(video?.statistics?.viewCount || 0),
+        seconds,
+        url: `https://www.youtube.com/watch?v=${video.id}`,
+      });
     }
   }
 
-  return results.sort((a, b) => b.views - a.views).slice(0, 10);
+  console.log("Toplam kanal:", CHANNEL_HANDLES.length);
+  console.log("Geçerli kanal:", validChannels.length);
+  console.log("Aday video sayısı:", allIds.length);
+  console.log("Filtre sonrası sonuç sayısı:", results.length);
+
+  return {
+    videos: results.sort((a, b) => b.views - a.views).slice(0, 10),
+    debug: {
+      totalChannels: CHANNEL_HANDLES.length,
+      validChannels: validChannels.length,
+      candidateVideos: allIds.length,
+      filteredVideos: results.length,
+    },
+  };
 }
 
 function TimeCard({ zone }) {
@@ -295,7 +325,7 @@ function TimeCard({ zone }) {
   );
 }
 
-function ShortsPanel({ videos, loading, error, updatedAt, onRefresh }) {
+function ShortsPanel({ videos, loading, error, updatedAt, onRefresh, debug }) {
   return (
     <div
       style={{
@@ -355,8 +385,8 @@ function ShortsPanel({ videos, loading, error, updatedAt, onRefresh }) {
           padding: "12px",
           marginBottom: "14px",
           fontSize: "12px",
-          opacity: 0.85,
-          lineHeight: 1.5,
+          opacity: 0.9,
+          lineHeight: 1.6,
         }}
       >
         Kanal sayısı: {CHANNEL_HANDLES.length}
@@ -365,6 +395,12 @@ function ShortsPanel({ videos, loading, error, updatedAt, onRefresh }) {
         {updatedAt
           ? new Date(updatedAt).toLocaleTimeString("tr-TR")
           : "henüz yok"}
+        <br />
+        Geçerli kanal: {debug.validChannels}
+        <br />
+        Aday video: {debug.candidateVideos}
+        <br />
+        Filtre sonrası: {debug.filteredVideos}
       </div>
 
       {loading && (
@@ -502,6 +538,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [debug, setDebug] = useState({
+    totalChannels: CHANNEL_HANDLES.length,
+    validChannels: 0,
+    candidateVideos: 0,
+    filteredVideos: 0,
+  });
 
   useEffect(() => {
     const timer = setInterval(() => setTick(Date.now()), 1000);
@@ -512,11 +554,15 @@ export default function App() {
     try {
       setLoading(true);
       setError("");
+
       const result = await fetchTopShortsLast24h();
-      setVideos(result);
+
+      setVideos(result.videos);
+      setDebug(result.debug);
       setUpdatedAt(Date.now());
     } catch (err) {
       setError(err?.message || "Veriler alınamadı.");
+      console.error("Genel loadVideos hatası:", err);
     } finally {
       setLoading(false);
     }
@@ -598,6 +644,7 @@ export default function App() {
             error={error}
             updatedAt={updatedAt}
             onRefresh={loadVideos}
+            debug={debug}
           />
         </div>
       </div>
