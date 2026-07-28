@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tweet Görsel Oluşturucu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#111315;
+      --panel:#1c1f22;
+      --panel-2:#24282c;
+      --line:#4a4f55;
+      --text:#f4f4f4;
+      --muted:#767b82;
+      --blue:#1d9bf0;
+      --danger:#ff5d5d;
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+    button,input,textarea,select{font:inherit}
+    .app{
+      display:grid;
+      grid-template-columns:minmax(320px,430px) 1fr;
+      gap:24px;
+      padding:24px;
+      max-width:1600px;
+      margin:0 auto;
+    }
+    .editor{
+      background:var(--panel);
+      border:1px solid #30343a;
+      border-radius:22px;
+      padding:18px;
+      position:sticky;
+      top:20px;
+      max-height:calc(100vh - 40px);
+      overflow:auto;
+    }
+    h1{font-size:21px;margin:0 0 5px}
+    .sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+    .toolbar{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-bottom:14px;
+    }
+    button,.file-btn{
+      border:0;
+      border-radius:12px;
+      padding:11px 13px;
+      cursor:pointer;
+      color:white;
+      background:var(--panel-2);
+      text-align:center;
+      transition:.15s ease;
+    }
+    button:hover,.file-btn:hover{filter:brightness(1.12)}
+    .primary{background:var(--blue);font-weight:700}
+    .danger{background:#4a2222;color:#ffb8b8}
+    .wide{grid-column:1/-1}
+    .post-editor{
+      border:1px solid #343940;
+      background:#17191c;
+      border-radius:16px;
+      padding:13px;
+      margin:12px 0;
+    }
+    .post-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:10px;
+    }
+    .post-head strong{font-size:14px}
+    .mini-actions{display:flex;gap:6px}
+    .mini-actions button{padding:6px 9px;font-size:12px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    label{
+      display:block;
+      font-size:12px;
+      color:#a8adb3;
+      margin:8px 0 5px;
+    }
+    input[type="text"], textarea, select{
+      width:100%;
+      background:#25292e;
+      color:#fff;
+      border:1px solid #383e45;
+      border-radius:10px;
+      padding:10px 11px;
+      outline:none;
+    }
+    textarea{min-height:84px;resize:vertical}
+    input:focus,textarea:focus,select:focus{border-color:var(--blue)}
+    .row{
+      display:flex;
+      align-items:center;
+      gap:9px;
+      margin-top:8px;
+    }
+    .row input[type="checkbox"]{width:17px;height:17px}
+    .file-line{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:10px;
+    }
+    .file-btn{
+      position:relative;
+      overflow:hidden;
+      font-size:12px;
+    }
+    .file-btn input{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      cursor:pointer;
+    }
+    .preview-wrap{
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      min-width:0;
+    }
+    .stage{
+      width:min(100%,720px);
+      background:#0e1012;
+      border:1px solid #2d3136;
+      border-radius:22px;
+      padding:20px;
+      box-shadow:0 18px 60px rgba(0,0,0,.3);
+    }
+    .stage-bar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:14px;
+      color:#cfd3d7;
+      font-size:13px;
+    }
+    .canvas-shell{
+      width:100%;
+      aspect-ratio:9/16;
+      overflow:hidden;
+      border-radius:14px;
+      background:#202020;
+      position:relative;
+    }
+    #mockup{
+      width:1080px;
+      height:1920px;
+      transform-origin:top left;
+      background:#202020;
+      padding:174px 126px 108px;
+      position:absolute;
+      left:0;top:0;
+      overflow:hidden;
+    }
+    .tweet{
+      padding:0 0 14px;
+    }
+    .tweet + .tweet{
+      border-top:1px solid #7a7a7a;
+      padding-top:12px;
+    }
+    .tweet-header{
+      display:grid;
+      grid-template-columns:98px 1fr;
+      gap:14px;
+      align-items:start;
+    }
+    .avatar{
+      width:98px;height:98px;border-radius:50%;
+      object-fit:cover;
+      background:#34383d;
+      border:0;
+      display:block;
+    }
+    .avatar-fallback{
+      width:98px;height:98px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:36px;font-weight:800;
+      background:#353b42;color:#fff;
+    }
+    .identity{
+      min-width:0;
+      width:100%;
+      padding-top:1px;
+    }
+    .name-line{
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:6px;
+      line-height:1.05;
+      margin-bottom:5px;
+    }
+    .name{
+      font-family:"Poppins", sans-serif;
+      font-size:31.35px;
+      line-height:1.08;
+      font-weight:600;
+      letter-spacing:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:360px;
+    }
+    .handle,.reply-label{
+      color:#777d84;
+      font-family:"Acumin Variable Concept", acumin-variable, "Arial", sans-serif;
+      font-size:20.4px;
+      line-height:24.5px;
+      font-weight:500;
+      font-variation-settings:"wght" 500;
+      letter-spacing:0;
+    }
+    .reply-target{color:var(--blue)}
+    .verify{
+      width:27px;
+      height:27px;
+      object-fit:contain;
+      display:block;
+      transform:translateY(1px);
+      flex:0 0 auto;
+    }
+    .tweet-text{
+      font-family:"Poppins", sans-serif;
+      display:block;
+      width:100%;
+      width:715px;
+      max-width:715px;
+      font-size:34.5px;
+      line-height:45px;
+      font-weight:600;
+      letter-spacing:0;
+      white-space:normal;
+      overflow-wrap:normal;
+    }
+    .tweet-line{
+      display:block;
+    }
+    .tweet.two-line-layout .tweet-header{
+      grid-template-columns:110px 1fr;
+      gap:16px;
+    }
+    .tweet.two-line-layout .avatar,
+    .tweet.two-line-layout .avatar-fallback{
+      width:110px;
+      height:110px;
+    }
+    .tweet.two-line-layout .avatar-fallback{
+      font-size:40px;
+    }
+    .tweet.two-line-layout .tweet-text{
+      width:703px;
+      max-width:703px;
+    }
+    .tweet-media{
+      width:100%;
+      height:auto;
+      max-width:100%;
+      margin-top:16px;
+      border-radius:20px;
+      display:block;
+      background:#31353a;
+    }
+    .media-placeholder{
+      width:100%;
+      height:360px;
+      margin-top:16px;
+      border-radius:20px;
+      background:
+        radial-gradient(circle at 25% 20%, rgba(255,255,255,.23), transparent 28%),
+        linear-gradient(135deg,#5a6877,#1f252c 58%,#778593);
+      display:flex;align-items:center;justify-content:center;
+      color:#d9dde1;font-weight:700;font-size:28px;
+      letter-spacing:.5px;
+    }
+    .mockup-mark{
+      position:absolute;
+      right:24px;
+      bottom:20px;
+      font-size:12px;
+      letter-spacing:1.4px;
+      color:#777;
+      text-transform:uppercase;
+    }
+    .empty{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#7c8289;
+      font-size:29px;
+    }
+    .hint{
+      font-size:12px;
+      color:#868c93;
+      margin-top:11px;
+      line-height:1.45;
+    }
+    .swatches{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .swatch{
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      border:2px solid #4a4f55;
+      cursor:pointer;
+      padding:0;
+      position:relative;
+      background:transparent;
+    }
+    .swatch.active{
+      border-color:#ffffff;
+      box-shadow:0 0 0 2px var(--blue);
+    }
+    .swatch-label{
+      font-size:12px;
+      color:#9aa0a6;
+      margin-top:8px;
+    }
+    @media (max-width:980px){
+      .app{grid-template-columns:1fr}
+      .editor{position:static;max-height:none}
+      .stage{width:min(100%,700px)}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="editor">
+      <h1>Tweet Görsel Oluşturucu</h1>
+      <div class="sub">Profilleri, metinleri ve görselleri değiştir; tasarım aynı kalsın. Tweet metinlerinde Poppins SemiBold kullanılır.</div>
+
+      <div class="toolbar">
+        <button id="addPost">Gönderi Ekle</button>
+        <button id="addReply">Yanıt Ekle</button>
+        <button id="exportPng" class="primary wide">PNG İndir</button>
+        <button id="saveJson">Projeyi Kaydet</button>
+        <label class="file-btn">Projeyi Aç
+          <input id="loadJson" type="file" accept="application/json">
+        </label>
+      </div>
+
+      <div class="post-editor">
+        <div class="post-head">
+          <strong>1. Tweet Metin Ayarları</strong>
+        </div>
+        <div class="grid2">
+          <div>
+            <label>Yazı Boyutu</label>
+            <input id="settingTweetFontSize" type="number" step="0.1" min="1">
+          </div>
+          <div>
+            <label>Satır Yüksekliği</label>
+            <input id="settingTweetLineHeight" type="number" step="0.1" min="1">
+          </div>
+        </div>
+        <label>Harf Aralığı</label>
+        <input id="settingTweetLetterSpacing" type="number" step="0.1">
+      </div>
+
+      <div class="post-editor">
+        <div class="post-head">
+          <strong>Arka Plan Ayarları</strong>
+        </div>
+        <label>Arka Plan Rengi Seç</label>
+        <div class="swatches" id="backgroundSwatches">
+          <button type="button" class="swatch" data-bg-color="#ffffff" style="background:#ffffff" title="Beyaz"></button>
+          <button type="button" class="swatch" data-bg-color="#000000" style="background:#000000" title="Siyah"></button>
+          <button type="button" class="swatch" data-bg-color="#141414" style="background:#141414" title="Koyu Gri 1"></button>
+          <button type="button" class="swatch" data-bg-color="#1f1f1f" style="background:#1f1f1f" title="Koyu Gri 2"></button>
+          <button type="button" class="swatch" data-bg-color="#262b3e" style="background:#262b3e" title="Koyu Mavi"></button>
+        </div>
+        <div class="swatch-label">Algılanan renkler: #ffffff, #000000, #141414, #1f1f1f, #262b3e</div>
+      </div>
+
+      <div id="postEditors"></div>
+      <div class="hint">
+        Görseller yalnızca cihazında işlenir. Dışa aktarılan görselde küçük bir “mockup” etiketi bulunur.
+      </div>
+    </section>
+
+    <section class="preview-wrap">
+      <div class="stage">
+        <div class="stage-bar">
+          <span>Önizleme · 1080 × 1920</span>
+          <span><span id="fontStatus">Font kontrol ediliyor…</span> · <span id="postCount">0 gönderi</span></span>
+        </div>
+        <div class="canvas-shell">
+          <div id="mockup"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+(() => {
+  const VERIFY_BADGE_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFMAAABTCAYAAADjsjsAAAAFCElEQVR42u1dPXLiMBR+0uQATmuKmCMwEx/A26RkkxusO1KmpqROme3IDZJQplkO4MxwBNOgFp2At4UxGGxjYcuWZPuVmV0jf3zfe5+efiB3d3egfVg2AmdE92He6Dgo9CYI1gDg1gZ03MOfgTMgfAOwZQDrAMhqoRXARBtmWjbiaAzoPYv/H86ArL6ALP+SHsyYcqMx4uOs/AM4Azr/A6pTgXIw0ZvgVWzUmKVKcyY+zhBHY1lpAnD0GwAAVQFKlTJSFpBJQL1nQMfFzoCJjitH2nnPf5q1SOaWjWgNjomZb06Lw69J3c4A8HGG5HNKUmO6tQG2LD0mbQrQ3tbA0E36wnSBCIO4etdPk/jzTr1q9r+R5FmrgVnGG+oaEtxAaTDRcRH9ObQuKnjWUgUIvUk7gdzn253/DjgaY+1gSjPZmgNaxmLRq6XddiCTgD7Noo6VdDAtu73SLpC8dDA7w8jMaapY/qTCrGzCG2oaokSiPSsF2SlQjMTAHLrQ+RCYAheCiY6LYNmdxzLZayjPzNseSFGpU5GH9CHLGgnQuzNRoFLaI9QkM/sQjuJOO98Y91Jk+QYQ/gAM76NFNll5f8sqghn+AHgGATn3gayDqBcZddBx9/It59kFxKJVH6AbIw9AHpTFCFkt5HxAQcOYCj2AM/2R5Cx/yUECIcg6qFiAorabETMg8jHNn71EmxMqz4DQm5Qz7ei4uHv5zl/Z013eByDHcsiw777vXr4xr2FM8wZgTCP4krwtu9qGsBxQd/575tSSZjFS+gBUybuunR05Sxo0I0eaXb2T6qozRWUsadBGvsk2yDuPoY8zTIFZ+zfZBnlnfVaicX5kpkFrPErlnVnlI8tED7IwhZU6yDvHx1IAsxbMdJF3ip2Oi0a14LSS93kM7/fMNGH1UUN5n8dNTNNGwFh9HfuMV6YWLeV9wky3odMWnAF9fTiyah0AcCbMJq3lnWiE0Gt2eVXJdam/rRaEfE5bIW+AqO9LVfYrRQDVXt5xbFlUgGrvpl+YEFwC1AR55zc66sonjnuxsZoJqCHyTtaBCExZaySXAPWeCwGlrw/myTsebxhE1ZyEATRxPm5vh/LPNnJG6OsD4mhslLzJahGNPX4J0gA7RRgKnBGj5B1bvWTOzLIvygA1SN5xijotQJwRnQHVtd9K5n52NSerhdD6cOOAairvc+tGU/nqYwpNmngRQLWs3usgZd1oZkWNzg5qAaiW1XsdAJn7qSKZfxBVwYldsnw7+bZ1POx6PkYxMOMX8ufNMkPknLgqID+nF8+lF7fgtgzAaXDE0YkwMDH6ncM9mKaCaeA27NqiYBt2MZjhTw9iXIC6tA27AadRfRt2k1NMbVkp0FUTK0ANtee0Dllgxpc7dZaV6yC3WX09MzkTW5Zta/z7K9dnkjAAI46wKGLldaY97iZ1DciM7pCcGVCX5M7ZxRXSTPBL3QVn2bjz39t7sP98b1Stc/O95NvoP8nyrRSQ5ZmZCByNoyvNTGephBu15d2GnbyQ1Bqcghs3fPkGIPyBprrnZO5HV0GMxtlj4huAMJB2g7aSq8Wl3oKd92IFXfE6gqrKS7VbGgU/1aCmOVy3xRKcsbQDTLhi5/C13jB5rUTT76T8ty0sW84dGiW9YSuYeeJZXx8qedYq3rBdzDy3V96z8FIvWb4d9kZqYfi1/KUqy0YcugDxJoRbG9AaHL0qZ9r9sBIAwH/jPM/kPdvAgAAAAABJRU5ErkJggg==";
+  const state = {
+    settings: {
+      tweetFontSize: 34.5,
+      tweetLineHeight: 45,
+      tweetLetterSpacing: 0,
+      backgroundColor: "#141414"
+    },
+    posts: [
+      {
+        name: "Volt Motors",
+        handle: "@voltmotors",
+        verified: true,
+        reply: false,
+        replyTo: "",
+        text: "This new electric pickup can tow a heavy load. Can your truck do this?",
+        avatar: "",
+        media: ""
+      },
+      {
+        name: "RoadWorks",
+        handle: "@roadworks",
+        verified: true,
+        reply: true,
+        replyTo: "@voltmotors",
+        text: "A 1972 pickup was towing a giant airplane.",
+        avatar: "",
+        media: ""
+      }
+    ]
+  };
+
+  const editors = document.getElementById("postEditors");
+  const mockup = document.getElementById("mockup");
+  const shell = document.querySelector(".canvas-shell");
+  const postCount = document.getElementById("postCount");
+  const fontStatus = document.getElementById("fontStatus");
+  const settingTweetFontSize = document.getElementById("settingTweetFontSize");
+  const settingTweetLineHeight = document.getElementById("settingTweetLineHeight");
+  const settingTweetLetterSpacing = document.getElementById("settingTweetLetterSpacing");
+  const backgroundSwatches = [...document.querySelectorAll("[data-bg-color]")];
+
+  function normalizeTextSettings(source){
+    return {
+      tweetFontSize: Number(source?.tweetFontSize ?? 34.5),
+      tweetLineHeight: Number(source?.tweetLineHeight ?? 45),
+      tweetLetterSpacing: Number(source?.tweetLetterSpacing ?? 0)
+    };
+  }
+
+  function ensureSettings(){
+    const previousBackground = state.settings?.backgroundColor;
+    state.settings = {
+      ...normalizeTextSettings(state.settings),
+      backgroundColor: String(previousBackground || "#141414")
+    };
+    state.posts = (state.posts || []).map((post, index) => {
+      const nextPost = {...post};
+      if(index > 0){
+        nextPost.inheritTextSettings = nextPost.inheritTextSettings !== false;
+        nextPost.textSettings = normalizeTextSettings(nextPost.textSettings || state.settings);
+      }
+      return nextPost;
+    });
+  }
+
+  function resolvePostTextSettings(index){
+    ensureSettings();
+    const post = state.posts[index];
+    if(!post || index === 0 || post.inheritTextSettings !== false){
+      return normalizeTextSettings(state.settings);
+    }
+    return normalizeTextSettings(post.textSettings);
+  }
+
+  function syncBackgroundSwatches(){
+    backgroundSwatches.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.bgColor.toLowerCase() === String(state.settings.backgroundColor).toLowerCase());
+    });
+  }
+
+  function applyPreviewBackground(){
+    mockup.style.background = state.settings.backgroundColor;
+    shell.style.background = state.settings.backgroundColor;
+  }
+
+  function syncSettingsControls(){
+    ensureSettings();
+    settingTweetFontSize.value = state.settings.tweetFontSize;
+    settingTweetLineHeight.value = state.settings.tweetLineHeight;
+    settingTweetLetterSpacing.value = state.settings.tweetLetterSpacing;
+    syncBackgroundSwatches();
+    applyPreviewBackground();
+  }
+
+  [settingTweetFontSize, settingTweetLineHeight, settingTweetLetterSpacing].forEach(el => {
+    el.addEventListener("input", () => {
+      ensureSettings();
+      state.settings.tweetFontSize = Number(settingTweetFontSize.value || 34.5);
+      state.settings.tweetLineHeight = Number(settingTweetLineHeight.value || 45);
+      state.settings.tweetLetterSpacing = Number(settingTweetLetterSpacing.value || 0);
+      renderPreview();
+    });
+  });
+
+  backgroundSwatches.forEach(btn => {
+    btn.addEventListener("click", () => {
+      ensureSettings();
+      state.settings.backgroundColor = btn.dataset.bgColor;
+      syncBackgroundSwatches();
+      renderPreview();
+    });
+  });
+
+  function escapeHtml(v=""){
+    return v.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  }
+  function initials(name){
+    return (name || "?").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase();
+  }
+  function updateScale(){
+    const scale = shell.clientWidth / 1080;
+    mockup.style.transform = `scale(${scale})`;
+  }
+  async function checkFonts(){
+    try{
+      await document.fonts.load('600 31px "Poppins"');
+      await document.fonts.ready;
+      const acuminReady = document.fonts.check('500 20px "Acumin Variable Concept"') || document.fonts.check('500 20px acumin-variable');
+      fontStatus.textContent = acuminReady ? "Poppins + Acumin hazır" : "Poppins hazır · Acumin kullanılamıyor";
+    }catch{
+      fontStatus.textContent = "Font durumu bilinmiyor";
+    }
+  }
+  window.addEventListener("resize", updateScale);
+
+  function renderEditors(){
+    ensureSettings();
+    editors.innerHTML = "";
+    state.posts.forEach((p, i) => {
+      if(i > 0){
+        p.inheritTextSettings = p.inheritTextSettings !== false;
+        p.textSettings = normalizeTextSettings(p.textSettings || state.settings);
+      }
+
+      const resolvedTextSettings = resolvePostTextSettings(i);
+      const textSettingsHtml = i > 0 ? `
+        <div class="post-editor" style="margin-top:12px">
+          <div class="post-head">
+            <strong>${i + 1}. Tweet Metin Ayarları</strong>
+          </div>
+          <div class="row">
+            <input data-inherit-text-settings="true" data-i="${i}" type="checkbox" ${p.inheritTextSettings !== false ? "checked" : ""}>
+            <label style="margin:0">1. gönderinin ayarlarını kullan</label>
+          </div>
+          <div class="grid2">
+            <div>
+              <label>Yazı Boyutu</label>
+              <input data-text-setting="tweetFontSize" data-i="${i}" type="number" step="0.1" min="1" value="${resolvedTextSettings.tweetFontSize}" ${p.inheritTextSettings !== false ? "disabled" : ""}>
+            </div>
+            <div>
+              <label>Satır Yüksekliği</label>
+              <input data-text-setting="tweetLineHeight" data-i="${i}" type="number" step="0.1" min="1" value="${resolvedTextSettings.tweetLineHeight}" ${p.inheritTextSettings !== false ? "disabled" : ""}>
+            </div>
+          </div>
+          <label>Harf Aralığı</label>
+          <input data-text-setting="tweetLetterSpacing" data-i="${i}" type="number" step="0.1" value="${resolvedTextSettings.tweetLetterSpacing}" ${p.inheritTextSettings !== false ? "disabled" : ""}>
+        </div>
+      ` : ``;
+
+      const card = document.createElement("div");
+      card.className = "post-editor";
+      card.innerHTML = `
+        <div class="post-head">
+          <strong>${i + 1}. ${p.reply ? "Yanıt" : "Gönderi"}</strong>
+          <div class="mini-actions">
+            <button data-act="up" data-i="${i}">↑</button>
+            <button data-act="down" data-i="${i}">↓</button>
+            <button class="danger" data-act="delete" data-i="${i}">Sil</button>
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <label>Görünen ad</label>
+            <input data-field="name" data-i="${i}" type="text" value="${escapeHtml(p.name)}">
+          </div>
+          <div>
+            <label>Kullanıcı adı</label>
+            <input data-field="handle" data-i="${i}" type="text" value="${escapeHtml(p.handle)}">
+          </div>
+        </div>
+        <div class="row">
+          <input data-field="verified" data-i="${i}" type="checkbox" ${p.verified ? "checked" : ""}>
+          <label style="margin:0">Mavi tik</label>
+          <input data-field="reply" data-i="${i}" type="checkbox" ${p.reply ? "checked" : ""}>
+          <label style="margin:0">Yanıt olarak göster</label>
+        </div>
+        <label>Yanıt verilen hesap</label>
+        <input data-field="replyTo" data-i="${i}" type="text" value="${escapeHtml(p.replyTo)}" ${p.reply ? "" : "disabled"}>
+        <label>Metin</label>
+        <textarea data-field="text" data-i="${i}">${escapeHtml(p.text)}</textarea>
+        <div class="file-line">
+          <label class="file-btn">Profil Görseli
+            <input data-file="avatar" data-i="${i}" type="file" accept="image/*">
+          </label>
+          <label class="file-btn">Gönderi Görseli
+            <input data-file="media" data-i="${i}" type="file" accept="image/*">
+          </label>
+        </div>
+        ${textSettingsHtml}
+      `;
+      editors.appendChild(card);
+    });
+
+    editors.querySelectorAll("[data-field]").forEach(el => {
+      el.addEventListener("input", e => {
+        const i = Number(e.target.dataset.i);
+        const field = e.target.dataset.field;
+        state.posts[i][field] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+        if(field === "reply") renderEditors();
+        renderPreview();
+      });
+    });
+
+    editors.querySelectorAll("[data-file]").forEach(el => {
+      el.addEventListener("change", e => {
+        const file = e.target.files?.[0];
+        if(!file) return;
+        const i = Number(e.target.dataset.i);
+        const field = e.target.dataset.file;
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.posts[i][field] = reader.result;
+          renderPreview();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    editors.querySelectorAll("[data-inherit-text-settings]").forEach(el => {
+      el.addEventListener("change", e => {
+        const i = Number(e.target.dataset.i);
+        if(!state.posts[i]) return;
+        state.posts[i].inheritTextSettings = e.target.checked;
+        state.posts[i].textSettings = normalizeTextSettings(state.posts[i].textSettings || state.settings);
+        renderAll();
+      });
+    });
+
+    editors.querySelectorAll("[data-text-setting]").forEach(el => {
+      el.addEventListener("input", e => {
+        const i = Number(e.target.dataset.i);
+        const field = e.target.dataset.textSetting;
+        if(!state.posts[i]) return;
+        state.posts[i].inheritTextSettings = false;
+        state.posts[i].textSettings = normalizeTextSettings(state.posts[i].textSettings || state.settings);
+        state.posts[i].textSettings[field] = Number(e.target.value || state.settings[field]);
+        renderPreview();
+      });
+    });
+
+    editors.querySelectorAll("[data-act]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.dataset.i);
+        const act = btn.dataset.act;
+        if(act === "delete") state.posts.splice(i,1);
+        if(act === "up" && i > 0) [state.posts[i-1], state.posts[i]] = [state.posts[i], state.posts[i-1]];
+        if(act === "down" && i < state.posts.length-1) [state.posts[i+1], state.posts[i]] = [state.posts[i], state.posts[i+1]];
+        renderAll();
+      });
+    });
+  }
+
+  function renderPreview(){
+    applyPreviewBackground();
+    if(!state.posts.length){
+      mockup.innerHTML = `<div class="empty">Bir gönderi ekleyin</div><div class="mockup-mark">mockup</div>`;
+      postCount.textContent = "0 gönderi";
+      updateScale();
+      return;
+    }
+    mockup.innerHTML = state.posts.map((p, i) => {
+      const postTextSettings = resolvePostTextSettings(i);
+      const previewFont = `600 ${postTextSettings.tweetFontSize}px Poppins`;
+      const initialLines = fitTextLines(p.text || "", 715, previewFont, postTextSettings.tweetLetterSpacing);
+      const isTwoLineLayout = initialLines.length === 2;
+      const previewTextWidth = isTwoLineLayout ? 703 : 715;
+      const avatar = p.avatar
+        ? `<img class="avatar" src="${p.avatar}" alt="">`
+        : `<div class="avatar-fallback">${escapeHtml(initials(p.name))}</div>`;
+      const reply = p.reply
+        ? `<span class="reply-label">Replying to <span class="reply-target">${escapeHtml(p.replyTo || "@account")}</span></span>`
+        : `<span class="handle">${escapeHtml(p.handle)}</span>`;
+      const media = p.media
+        ? `<img class="tweet-media" src="${p.media}" alt="">`
+        : ``;
+      return `
+        <article class="tweet ${isTwoLineLayout ? "two-line-layout" : ""}">
+          <div class="tweet-header">
+            ${avatar}
+            <div class="identity">
+              <div class="name-line">
+                <span class="name">${escapeHtml(p.name)}</span>
+                ${p.verified ? `<img class="verify" src="${VERIFY_BADGE_SRC}" alt="Mavi tik">` : ""}
+                ${reply}
+              </div>
+              <div class="tweet-text" style="font-size:${postTextSettings.tweetFontSize}px; line-height:${postTextSettings.tweetLineHeight}px;">${renderWrappedTextHtml(p.text || "", previewTextWidth, previewFont, postTextSettings.tweetLetterSpacing)}</div>
+            </div>
+          </div>
+          ${media}
+        </article>
+      `;
+    }).join("") + `<div class="mockup-mark">mockup</div>`;
+    postCount.textContent = `${state.posts.length} gönderi`;
+    requestAnimationFrame(updateScale);
+  }
+
+  function renderAll(){
+    syncSettingsControls();
+    renderEditors();
+    renderPreview();
+  }
+
+  document.getElementById("addPost").addEventListener("click", () => {
+    ensureSettings();
+    state.posts.push({
+      name:"New Profile", handle:"@newprofile", verified:false,
+      reply:false, replyTo:"", text:"New post text", avatar:"", media:"",
+      inheritTextSettings:true, textSettings: normalizeTextSettings(state.settings)
+    });
+    renderAll();
+  });
+
+  document.getElementById("addReply").addEventListener("click", () => {
+    ensureSettings();
+    state.posts.push({
+      name:"Reply Profile", handle:"@reply", verified:false,
+      reply:true, replyTo:state.posts[0]?.handle || "@account",
+      text:"Reply text", avatar:"", media:"",
+      inheritTextSettings:true, textSettings: normalizeTextSettings(state.settings)
+    });
+    renderAll();
+  });
+
+  function downloadBlob(blob, name){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  function wait(ms){
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function waitForFontsBriefly(){
+    try{
+      await Promise.race([
+        Promise.all([
+          document.fonts.load('600 31px "Poppins"'),
+          document.fonts.load('500 20px "Acumin Variable Concept"').catch(() => [])
+        ]),
+        wait(1200)
+      ]);
+    }catch{
+      // Export continues with browser fallback fonts.
+    }
+  }
+
+  function canvasToPngBlob(canvas){
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        if(blob){
+          resolve(blob);
+          return;
+        }
+
+        try{
+          const dataUrl = canvas.toDataURL("image/png");
+          const parts = dataUrl.split(",");
+          const binary = atob(parts[1]);
+          const bytes = new Uint8Array(binary.length);
+          for(let i = 0; i < binary.length; i++){
+            bytes[i] = binary.charCodeAt(i);
+          }
+          resolve(new Blob([bytes], {type:"image/png"}));
+        }catch(error){
+          reject(error);
+        }
+      }, "image/png");
+    });
+  }
+
+  async function savePngBlob(blob, fileHandle=null){
+    if(fileHandle){
+      const writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    }
+
+    downloadBlob(blob, "tweet-mockup-1080x1920.png");
+  }
+
+  document.getElementById("saveJson").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+    downloadBlob(blob, "tweet-mockup-project.json");
+  });
+
+  document.getElementById("loadJson").addEventListener("change", e => {
+    const f = e.target.files?.[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try{
+        const data = JSON.parse(r.result);
+        if(!Array.isArray(data.posts)) throw new Error();
+        state.posts = data.posts;
+        state.settings = { ...state.settings, ...(data.settings || {}) };
+        ensureSettings();
+        renderAll();
+      }catch{
+        alert("Geçersiz proje dosyası.");
+      }
+    };
+    r.readAsText(f);
+  });
+
+  function loadImage(src){
+    return new Promise(resolve => {
+      if(!src) return resolve(null);
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d");
+
+  function measureTextWidth(text, font, letterSpacing=0){
+    const safeText = String(text || "");
+    measureCtx.font = font;
+    const baseWidth = measureCtx.measureText(safeText).width;
+    const slots = Math.max(0, Array.from(safeText).length - 1);
+    return baseWidth + (slots * letterSpacing);
+  }
+
+  function fitParagraphLines(paragraph, maxWidth, font, letterSpacing=0){
+    const lines = [];
+    const text = String(paragraph || "");
+    if(!text.trim()){
+      lines.push("");
+      return lines;
+    }
+
+    const words = text.trim().split(/\s+/);
+    let line = "";
+
+    for(const word of words){
+      const candidate = line ? line + " " + word : word;
+      if(line && measureTextWidth(candidate, font, letterSpacing) > maxWidth){
+        lines.push(line);
+        line = word;
+      }else{
+        line = candidate;
+      }
+    }
+
+    if(line) lines.push(line);
+    return lines;
+  }
+
+  function fitTextLines(text, maxWidth, font, letterSpacing=0){
+    const result = [];
+    const paragraphs = String(text || "").split("\n");
+    paragraphs.forEach((paragraph, index) => {
+      result.push(...fitParagraphLines(paragraph, maxWidth, font, letterSpacing));
+      if(index < paragraphs.length - 1 && !paragraph.trim()){
+        result.push("");
+      }
+    });
+    return result;
+  }
+
+  function renderWrappedTextHtml(text, maxWidth, font, letterSpacing=0){
+    return fitTextLines(text, maxWidth, font, letterSpacing).map(line =>
+      `<span class="tweet-line" style="letter-spacing:${Number(letterSpacing).toFixed(3)}px">${escapeHtml(line)}</span>`
+    ).join("");
+  }
+
+  function drawSpacedText(ctx, text, x, y, spacing){
+    const chars = Array.from(String(text || ""));
+    let cursor = x;
+    chars.forEach((ch, idx) => {
+      ctx.fillText(ch, cursor, y);
+      cursor += ctx.measureText(ch).width;
+      if(idx < chars.length - 1) cursor += spacing;
+    });
+  }
+
+  function roundedRect(ctx,x,y,w,h,r){
+    const rr=Math.min(r,w/2,h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y,x+w,y+h,rr);
+    ctx.arcTo(x+w,y+h,x,y+h,rr);
+    ctx.arcTo(x,y+h,x,y,rr);
+    ctx.arcTo(x,y,x+w,y,rr);
+    ctx.closePath();
+  }
+  function coverDraw(ctx,img,x,y,w,h,r=0){
+    const scale=Math.max(w/img.width,h/img.height);
+    const sw=w/scale, sh=h/scale;
+    const sx=(img.width-sw)/2, sy=(img.height-sh)/2;
+    ctx.save();
+    if(r){ roundedRect(ctx,x,y,w,h,r); ctx.clip(); }
+    ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
+    ctx.restore();
+  }
+
+  function containDraw(ctx,img,x,y,w,h,r=0,bg="#31353a"){
+    const scale=Math.min(w/img.width,h/img.height);
+    const dw=img.width*scale, dh=img.height*scale;
+    const dx=x+(w-dw)/2, dy=y+(h-dh)/2;
+    ctx.save();
+    if(r){ roundedRect(ctx,x,y,w,h,r); ctx.clip(); }
+    ctx.fillStyle = bg;
+    ctx.fillRect(x,y,w,h);
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  async function exportCanvas(){
+    await waitForFontsBriefly();
+    const W=1080,H=1920, left=126, right=954, contentW=828;
+    const canvas=document.createElement("canvas");
+    canvas.width=W; canvas.height=H;
+    const ctx=canvas.getContext("2d");
+    ctx.fillStyle = state.settings.backgroundColor || "#141414";
+    ctx.fillRect(0,0,W,H);
+
+    const verificationBadge = await loadImage(VERIFY_BADGE_SRC);
+    const assets=await Promise.all(state.posts.map(async p=>({
+      avatar:await loadImage(p.avatar),
+      media:await loadImage(p.media)
+    })));
+
+    let y=174;
+    for(let i=0;i<state.posts.length;i++){
+      const p=state.posts[i];
+      const a=assets[i];
+      if(i>0){
+        ctx.strokeStyle="#777";
+        ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();
+        y+=14;
+      }
+
+      const top = y;
+      const postTextSettings = resolvePostTextSettings(i);
+      const baseAvatarS = 98;
+      const twoLineCheckFont = `600 ${postTextSettings.tweetFontSize}px "Poppins", sans-serif`;
+      const baseTx = 239;
+      const initialTextMaxWidth = right - baseTx;
+      const initialLines = fitTextLines(p.text || "", initialTextMaxWidth, twoLineCheckFont, postTextSettings.tweetLetterSpacing);
+      const isTwoLineLayout = initialLines.length === 2;
+
+      const avatarX = 126;
+      const avatarY = y + 2;
+      const avatarS = isTwoLineLayout ? 110 : baseAvatarS;
+      const avatarR = avatarS / 2;
+      if(a.avatar){
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarR, avatarY + avatarR, avatarR, 0, Math.PI*2);
+        ctx.clip();
+        coverDraw(ctx,a.avatar,avatarX,avatarY,avatarS,avatarS,0);
+        ctx.restore();
+      }else{
+        ctx.fillStyle="#353b42";
+        ctx.beginPath();ctx.arc(avatarX + avatarR, avatarY + avatarR, avatarR, 0, Math.PI*2);ctx.fill();
+        ctx.fillStyle="#fff";
+        ctx.font = isTwoLineLayout ? "800 34px Arial" : "800 30px Arial";
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+        ctx.fillText(initials(p.name), avatarX + avatarR, avatarY + avatarR + 1);
+        ctx.textAlign="left";
+        ctx.textBaseline="alphabetic";
+      }
+
+      const tx = avatarX + avatarS + (isTwoLineLayout ? 15 : 15);
+      ctx.font='600 31.35px "Poppins", sans-serif';
+      ctx.fillStyle="#f4f4f4";
+      ctx.fillText(p.name || "",tx,top+30);
+      let x=tx+ctx.measureText(p.name || "").width+7;
+      if(p.verified){
+        if(verificationBadge){
+          ctx.drawImage(verificationBadge, x, top + 5, 27, 27);
+        }
+        x += 33;
+      }
+      ctx.font='500 20.4px "Acumin Variable Concept", acumin-variable, Arial, sans-serif';
+      ctx.fillStyle="#777d84";
+      if(p.reply){
+        const a1="Replying to ";
+        ctx.fillText(a1,x,top+35);
+        x+=ctx.measureText(a1).width;
+        ctx.fillStyle="#1d9bf0";
+        ctx.fillText(p.replyTo || "@account",x,top+35);
+      }else{
+        ctx.fillText(p.handle || "",x,top+35);
+      }
+
+      ctx.font=`600 ${postTextSettings.tweetFontSize}px "Poppins", sans-serif`;
+      ctx.fillStyle="#f4f4f4";
+      const textMaxWidth = right - tx;
+      const exportTweetFont = `600 ${postTextSettings.tweetFontSize}px "Poppins", sans-serif`;
+      const lines = fitTextLines(p.text || "", textMaxWidth, exportTweetFont, postTextSettings.tweetLetterSpacing);
+      let textY = top + 72;
+      const lineHeight = postTextSettings.tweetLineHeight;
+      for(const line of lines){
+        drawSpacedText(ctx, line, tx, textY, postTextSettings.tweetLetterSpacing);
+        textY += lineHeight;
+      }
+
+      const headerBottom=Math.max(avatarY+avatarS, textY-12);
+
+      if(a.media){
+        const mediaY = headerBottom + 16;
+        let mediaH = contentW * (a.media.height / a.media.width);
+
+        const maxAvailableHeight = 1776 - mediaY;
+        if(mediaH > maxAvailableHeight){
+          mediaH = maxAvailableHeight;
+        }
+
+        ctx.save();
+        roundedRect(ctx,left,mediaY,contentW,mediaH,20);
+        ctx.clip();
+        ctx.drawImage(a.media, left, mediaY, contentW, mediaH);
+        ctx.restore();
+
+        y = mediaY + mediaH + 18;
+      }else{
+        y = headerBottom + 18;
+      }
+
+      if(y>1776) break;
+    }
+
+    ctx.fillStyle="#777";
+    ctx.font="12px Arial";
+    ctx.textAlign="right";
+    ctx.fillText("MOCKUP",1050,1890);
+    ctx.textAlign="left";
+
+    return canvas;
+  }
+
+  document.getElementById("exportPng").addEventListener("click", async () => {
+    const button = document.getElementById("exportPng");
+    const originalText = button.textContent;
+    let fileHandle = null;
+
+    try{
+      button.disabled = true;
+      button.textContent = "PNG hazırlanıyor...";
+
+      if("showSaveFilePicker" in window && window.isSecureContext){
+        try{
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName: "tweet-mockup-1080x1920.png",
+            types: [{
+              description: "PNG Görseli",
+              accept: {"image/png": [".png"]}
+            }]
+          });
+        }catch(error){
+          if(error?.name === "AbortError"){
+            return;
+          }
+          fileHandle = null;
+        }
+      }
+
+      const canvas = await exportCanvas();
+      const blob = await canvasToPngBlob(canvas);
+      await savePngBlob(blob, fileHandle);
+      button.textContent = "İndirildi";
+      await wait(900);
+    }catch(error){
+      console.error("PNG export failed:", error);
+      alert("PNG indirilemedi. Siteyi Chrome veya Edge ile açıp tekrar deneyin.");
+    }finally{
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  });
+  ensureSettings();
+  renderAll();
+  checkFonts();
+})();
+</script>
+</body>
+</html>
